@@ -5,7 +5,7 @@ var CoinbaseStrategy = require('passport-coinbase/strategy');
 
 
 vows.describe('CoinbaseStrategy').addBatch({
-  
+
   'strategy': {
     topic: function() {
       return new CoinbaseStrategy({
@@ -14,12 +14,12 @@ vows.describe('CoinbaseStrategy').addBatch({
       },
       function() {});
     },
-    
+
     'should be named coinbase': function (strategy) {
       assert.equal(strategy.name, 'coinbase');
     },
   },
-  
+
   'strategy with scopes': {
     topic: function() {
       return new CoinbaseStrategy({
@@ -29,7 +29,7 @@ vows.describe('CoinbaseStrategy').addBatch({
       },
       function() {});
     },
-    
+
     'should have correct scopes': function (strategy) {
       assert.deepEqual(strategy._scope, ['user', 'transactions']);
     },
@@ -47,32 +47,32 @@ vows.describe('CoinbaseStrategy').addBatch({
         scope: ['user']
       },
       function() {});
-      
+
       // mock
-      strategy._oauth2.get = function(url, accessToken, callback) {
-        if (url == 'https://coinbase.com/api/v1/users') {
-          var body = '{ "users": [{ "user": { "id": "mycoinbaseuserid", "name": "monalisa coincat", "email": "monalisa@coinvest.io" } }] }';
-          callback(null, body, undefined);
-        } else {
-          callback(new Error('Incorrect user profile URL'));
-        }
+      strategy._coinbaseClient = function(opts) {
+        return {
+          getCurrentUser: function(callback) {
+            var body = { id: "mycoinbaseuserid", name: "monalisa coincat", email: "monalisa@coinvest.io" };
+            callback(null, body);
+          }
+        };
       }
-      
+
       return strategy;
     },
-    
+
     'when told to load user profile': {
       topic: function(strategy) {
         var self = this;
         function done(err, profile) {
           self.callback(err, profile);
         }
-        
+
         process.nextTick(function () {
           strategy.userProfile('access-token', done);
         });
       },
-      
+
       'should not error' : function(err, req) {
         assert.isNull(err);
       },
@@ -100,27 +100,31 @@ vows.describe('CoinbaseStrategy').addBatch({
         scope: ['user']
       },
       function() {});
-      
+
       // mock
-      strategy._oauth2.get = function(url, accessToken, callback) {
-        callback(new Error('something-went-wrong'));
+      strategy._coinbaseClient = function(opts) {
+        return {
+          getCurrentUser: function(callback) {
+            callback(new Error('something-went-wrong'));
+          }
+        };
       }
-      
+
       return strategy;
     },
-    
+
     'when told to load user profile': {
       topic: function(strategy) {
         var self = this;
         function done(err, profile) {
           self.callback(err, profile);
         }
-        
+
         process.nextTick(function () {
           strategy.userProfile('access-token', done);
         });
       },
-      
+
       'should error' : function(err, req) {
         assert.isNotNull(err);
       },
